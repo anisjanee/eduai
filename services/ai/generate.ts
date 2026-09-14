@@ -11,12 +11,20 @@ export type GeneratedQuestion = {
   explanation: string;
 };
 
+export type StudyPlanItem = {
+  day: string;
+  subject: string;
+  topic: string;
+  minutes: number;
+  task: string;
+};
+
 async function providerText(messages: TutorMessage[]) {
   const provider = process.env.AI_PROVIDER === 'openai' && process.env.OPENAI_API_KEY ? 'openai' : 'ollama';
   if (provider === 'openai') {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST', headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, cache: 'no-store',
-      body: JSON.stringify({ model: process.env.OPENAI_MODEL || 'gpt-4o-mini', messages, temperature: 0.3, max_tokens: 1200 }),
+      body: JSON.stringify({ model: process.env.OPENAI_MODEL || 'gpt-4o-mini', messages, temperature: 0.3, max_tokens: 1600 }),
     });
     if (!response.ok) throw new Error(`AI_PROVIDER_ERROR:${response.status}`);
     const data = await response.json(); return data.choices?.[0]?.message?.content || '';
@@ -51,4 +59,26 @@ export async function checkAnswer(input: { question: string; correctAnswer: stri
 Верни ТОЛЬКО JSON: {"correct":true|false,"feedback":"короткая доброжелательная обратная связь","hint":"подсказка без раскрытия ответа"}.`;
   const text = await providerText([{ role: 'system', content: 'Ты строгий, но доброжелательный учитель. Не придумывай правильность ответа.' }, { role: 'user', content: prompt }]);
   return parseJson(text) as { correct: boolean; feedback: string; hint: string };
+}
+
+export async function generateStudyPlan(input: { subjects: string[]; goal?: string; grade?: string; weakTopics?: string[] }): Promise<StudyPlanItem[]> {
+  const subjects = input.subjects.length ? input.subjects : ['Математика'];
+  const prompt = `Составь реалистичный персональный учебный план на 7 дней для ученика EduAI.
+Предметы: ${subjects.join(', ')}.
+Цель: ${input.goal || 'улучшить знания и закрепить материал'}.
+Класс: ${input.grade || 'не указан'}.
+Слабые темы: ${input.weakTopics?.length ? input.weakTopics.join(', ') : 'не определены'}.
+План должен содержать 5 учебных дней, по одной задаче на день, 20–40 минут. Чередуй предметы и уделяй больше внимания слабым темам.
+Верни ТОЛЬКО JSON: {"items":[{"day":"Пн","subject":"...","topic":"...","minutes":25,"task":"..."}]}.
+Дни строго: Пн, Вт, Ср, Чт, Пт. Не добавляй другие поля.`;
+  const text = await providerText([{ role: 'system', content: TUTOR_SYSTEM_PROMPT }, { role: 'user', content: prompt }]);
+  const parsed = parseJson(text);
+  if (!Array.isArray(parsed.items) || parsed.items.length < 5) throw new Error('AI_INVALID_PLAN');
+  return parsed.items.slice(0, 5).map((item: StudyPlanItem) => ({
+    day: String(item.day),
+    subject: String(item.subject),
+    topic: String(item.topic),
+    minutes: Math.min(60, Math.max(10, Number(item.minutes) || 25)),
+    task: String(item.task),
+  }));
 }
