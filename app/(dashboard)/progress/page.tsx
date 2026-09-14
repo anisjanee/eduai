@@ -20,7 +20,7 @@ export default async function Progress() {
   since.setHours(0, 0, 0, 0);
 
   const [answersResult, questionsResult, sessionsResult, subjectsResult, userSubjectsResult, topicsResult] = await Promise.all([
-    supabase.from('answers').select('question_id,correct,created_at').eq('user_id', user.id),
+    supabase.from('answers').select('question_id,correct').eq('user_id', user.id),
     supabase.from('questions').select('id,subject_id,topic_id').eq('user_id', user.id),
     supabase.from('study_sessions').select('subject_id,minutes,xp,created_at').eq('user_id', user.id),
     supabase.from('subjects').select('id,name,icon'),
