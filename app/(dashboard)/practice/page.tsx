@@ -32,7 +32,7 @@ export default function Practice() {
     if (!question || !answer.trim() || checking) return;
     setChecking(true); setError('');
     try {
-      const r = await fetch('/api/ai/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ questionId: question.id, question: question.prompt, correctAnswer: 'Смотри сохранённый ответ задачи', studentAnswer: answer }) });
+      const r = await fetch('/api/ai/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ questionId: question.id, studentAnswer: answer }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Не удалось проверить ответ');
       setResult(d);
