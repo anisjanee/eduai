@@ -1,1 +1,24 @@
-import {NextRequest,NextResponse} from 'next/server'; import {z} from 'zod'; const schema=z.object({message:z.string().min(1).max(6000),history:z.array(z.object({role:z.enum(['user','assistant']),content:z.string()})).max(30).optional()}); const system=`Ты терпеливый персональный преподаватель EduAI. Не просто давай ответ — помогай понять. Определи уровень, объясняй простыми словами, разбивай сложное, используй примеры, проверяй понимание. Если просят решить задачу, сначала предложи попробовать первый шаг. По запросу дай подсказку, а затем пошаговое решение. После решения предложи похожую задачу. Отвечай на русском. Используй Markdown и LaTeX.`; export async function POST(req:NextRequest){try{const b=schema.parse(await req.json());if(!process.env.OPENAI_API_KEY)return NextResponse.json({reply:'AI готов, но ключ провайдера пока не настроен. Добавь OPENAI_API_KEY в .env.local.'});const messages=[{role:'system',content:system},...(b.history??[]),{role:'user',content:b.message}];const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:process.env.OPENAI_MODEL||'gpt-4o-mini',messages,temperature:.5,max_tokens:900})});if(!r.ok)return NextResponse.json({error:'AI service unavailable'},{status:502});const d=await r.json();return NextResponse.json({reply:d.choices?.[0]?.message?.content||'Нет ответа'})}catch{return NextResponse.json({error:'Некорректный запрос'},{status:400})}}
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { createClient } from '@/lib/supabase/server';
+import { chatWithTutor } from '@/services/ai';
+
+const schema = z.object({
+  message: z.string().trim().min(1).max(6000),
+  history: z.array(z.object({ role: z.enum(['user','assistant']), content: z.string().max(6000) })).max(30).default([]),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
+    const body = schema.parse(await req.json());
+    const reply = await chatWithTutor(body.message, body.history);
+    return NextResponse.json({ reply });
+  } catch (error) {
+    const message = error instanceof z.ZodError ? 'Некорректный запрос' : 'AI временно недоступен';
+    const status = error instanceof z.ZodError ? 400 : 502;
+    return NextResponse.json({ error: message }, { status });
+  }
+}
