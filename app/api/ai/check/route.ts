@@ -16,7 +16,9 @@ export async function POST(req: NextRequest) {
     const result = await checkAnswer({ question: question.prompt, correctAnswer: question.correct_answer, studentAnswer: body.studentAnswer, explanation: question.explanation });
     const { error } = await supabase.from('answers').insert({ user_id: user.id, question_id: body.questionId, answer: body.studentAnswer, correct: result.correct, feedback: result.feedback });
     if (error) throw error;
-    return NextResponse.json(result);
+    const { data: progress, error: progressError } = await supabase.rpc('record_practice_answer', { p_question_id: body.questionId, p_correct: result.correct });
+    if (progressError) throw progressError;
+    return NextResponse.json({ ...result, progress });
   } catch (error) {
     console.error(error);
     const message = error instanceof z.ZodError ? 'Некорректный ответ' : 'Не удалось проверить ответ';
