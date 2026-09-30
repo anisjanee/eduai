@@ -1,7 +1,7 @@
-name: Deploy periodic table to GitHub Pages
+name: Публикация сайта
 on:
   push:
-    branches: [periodic-table-site]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,6 +18,6 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: './periodic-table'
+          path: '.'
       - id: deployment
         uses: actions/deploy-pages@v4

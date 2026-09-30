@@ -1,8 +1,17 @@
-# EduAI MVP
+# Периодическая таблица — интерактивный 3D-сайт
 
-Next.js + TypeScript + Tailwind + Supabase/PostgreSQL + server-side AI API.
+Профессиональный одностраничный сайт по мотивам предоставленного видеореференса.
 
-## Run
-`npm install` → copy `.env.example` to `.env.local` → add `OPENAI_API_KEY` → `npm run dev`. For persistence, create Supabase project and execute `supabase/schema.sql`.
+## Возможности
+- русский интерфейс;
+- 118 химических элементов;
+- классическая периодическая таблица;
+- 3D-сфера;
+- 3D-спираль;
+- режим сетки;
+- поиск по символу и атомному номеру;
+- интерактивные карточки элементов;
+- адаптация для телефона;
+- публикация через GitHub Pages.
 
-The AI key is server-only in `/app/api/ai/chat`. Demo UI is included; auth forms currently use demo navigation until Supabase Auth is wired in.
+Проект не требует внешних библиотек или API-ключей.
